@@ -1,0 +1,116 @@
+<!-- res/layout/task_item.xml -->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/rounded_card_background"
+    android:padding="16dp"
+    android:layout_margin="8dp"
+    android:elevation="4dp"
+    android:layout_marginBottom="16dp"
+    tools:context=".MainActivity">
+
+    <!-- Task Details (on the left side) -->
+    <LinearLayout
+        android:id="@+id/taskDetails"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- Project Title -->
+        <TextView
+            android:id="@+id/taskGroup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Group"
+            android:textColor="#888888"
+            android:textSize="12sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/groupTaskIcon" /> <!-- Constrain to the left of ImageView -->
+
+        <!-- Task Title -->
+        <TextView
+            android:id="@+id/taskTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="4dp"
+            android:text="Task Title"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- Time and Status Row -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingTop="4dp">
+
+            <!-- Time Icon -->
+            <ImageView
+                android:id="@+id/timeIcon"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="center_vertical"
+                android:src="@drawable/clock"
+                app:tint="@color/Sky_Blue" />
+
+            <!-- Time Text -->
+            <TextView
+                android:id="@+id/timeToComplete"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="4dp"
+                android:text="10:00 AM"
+                android:textColor="@color/Sky_Blue"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Task Icon and Status Label -->
+    <LinearLayout
+        android:id="@+id/taskIconAndStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:gravity="center_horizontal">
+
+        <ImageView
+            android:id="@+id/groupTaskIcon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:backgroundTint="#FADADD"
+            android:padding="8dp"
+            app:tint="#E83E8C"
+            android:background="@drawable/rounded_icon_background"
+            app:layout_constraintStart_toEndOf="@+id/taskGroup"
+            app:layout_constraintTop_toTopOf="@+id/taskGroup"
+            app:layout_constraintBottom_toBottomOf="@+id/taskGroup" /> <!-- Align the bottom with TextView -->
+
+        <!-- Status Label (Below the Icon) -->
+        <TextView
+            android:id="@+id/taskProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Done"
+            android:backgroundTint="#E5D1FF"
+            android:background="@drawable/rounded_status_background"
+            android:paddingVertical="4dp"
+            android:paddingHorizontal="12dp"
+            app:layout_constraintStart_toEndOf="@+id/timeToComplete"
+            android:textColor="#A27BEF"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:layout_marginTop="8dp" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

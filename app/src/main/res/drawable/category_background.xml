@@ -1,0 +1,17 @@
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Selected state with corner radius -->
+    <item android:state_selected="true">
+        <shape xmlns:android="http://schemas.android.com/apk/res/android">
+            <solid android:color="@color/dateViewBackGroundColor"/>
+            <corners android:radius="20dp"/> <!-- Adjust the radius as needed -->
+        </shape>
+    </item>
+
+    <!-- Default state with corner radius -->
+    <item>
+        <shape xmlns:android="http://schemas.android.com/apk/res/android">
+            <solid android:color="@android:color/white"/>
+            <corners android:radius="8dp"/> <!-- Adjust the radius as needed -->
+        </shape>
+    </item>
+</selector>

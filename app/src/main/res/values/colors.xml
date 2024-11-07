@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="bright_blue">#4A90E2</color>
+    <color name="alabaster">#FEF9F3</color>
+    <color name="beach">#FFD987</color>
+    <color name="Warm_Orange">#FFB74D</color>
+    <color name="Teal">#4DB6AC</color>
+    <color name="Light_Indigo">#7986CB</color>
+    <color name="Coral_Pink">#FF8A65</color>
+    <color name="Light_Green">#AED581</color>
+    <color name="Lavender">#BA68C8</color>
+    <color name="Mustard_Yellow">#FFD54F</color>
+    <color name="Sky_Blue">#90CAF9</color>
+    <color name="Rose_Pink">#F06292</color>
+    <color name="Soft_Brown">#A1887F</color>
+    <color name="Light_grey">#f0ecfc</color>
+    <color name="color_tint">#5B3CF2</color>
+    <color name="colorNormal">#FFFFFF</color> <!-- Normal state background -->
+    <color name="colorPressed">#E0E0E0</color> <!-- Pressed state background -->
+    <color name="dateViewBackGroundColor">#5B3CF2</color> <!-- Selected state background -->
+    <color name="textColorNormal">#444444</color> <!-- Normal text color -->
+    <color name="textColorSelected">#FFFFFF</color> <!-- Selected text color -->
+</resources>

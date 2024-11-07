@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Outline -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFF" /> <!-- Outline color (white) -->
+            <stroke
+                android:width="2dp"
+                android:color="@color/Light_grey" /> <!-- Outline thickness and color -->
+            <corners android:radius="20dp" /> <!-- Rounded corners for outline -->
+        </shape>
+    </item>
+
+    <!-- Background -->
+    <item android:top="30dp" android:left="30dp" android:right="30dp" android:bottom="30dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/white" /> <!-- Background color -->
+            <corners android:radius="30dp" /> <!-- Rounded corners for background -->
+        </shape>
+    </item>
+
+</layer-list>

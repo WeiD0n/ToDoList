@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">ToDoList</string>
+    <string name="toggle_password_visibility">Toggle password visibility</string>
+    <string name="hide_password">Hide password</string>
+</resources>
