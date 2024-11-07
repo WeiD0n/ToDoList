@@ -24,7 +24,7 @@
 
         <!-- Project Title -->
         <TextView
-            android:id="@+id/taskGroup"
+            android:id="@+id/taskTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Group"
@@ -37,14 +37,13 @@
 
         <!-- Task Title -->
         <TextView
-            android:id="@+id/taskTitle"
+            android:id="@+id/taskGroup"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:paddingTop="4dp"
             android:text="Task Title"
             android:textColor="#000000"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:textSize="16sp" />
 
         <!-- Time and Status Row -->
         <LinearLayout

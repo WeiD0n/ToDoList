@@ -27,7 +27,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Date;
-
 import android.util.Base64;
 
 public class SignUpActivity extends AppCompatActivity {
@@ -121,7 +120,7 @@ public class SignUpActivity extends AppCompatActivity {
         passwordField.setSelection(passwordField.length()); // Move cursor to the end
     }
 
-    // Update password strength indicator
+    // Password strength indicator
     private void updatePasswordStrengthIndicator(String password) {
         passwordStrengthIndicator.setVisibility(View.VISIBLE);
 

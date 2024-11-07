@@ -39,7 +39,20 @@ public class LoginActivity extends AppCompatActivity {
         // Load saved credentials if any
         loadSavedCredentials();
 
-        // Set up login button click listener
+        // SharedPreferences for checking saved email and user ID
+        SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+        String savedEmail = sharedPreferences.getString("savedEmail", null);
+        int savedUserId = sharedPreferences.getInt("USER_ID", -1);
+
+        // If both saved email and user ID are found, skip login and go directly to HomeActivity
+        if (savedEmail != null && savedUserId != -1) {
+            Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
+            intent.putExtra("USER_ID", savedUserId);
+            startActivity(intent);
+            finish();  // Close the login activity
+        }
+
+        // Proceed with normal login flow if no saved user
         loginButton.setOnClickListener(v -> {
             String email = emailInput.getText().toString().trim();
             String password = passwordInput.getText().toString().trim();
@@ -52,13 +65,11 @@ public class LoginActivity extends AppCompatActivity {
 
         // Set up register text click listener
         loginOption.setOnClickListener(v -> {
-            // Redirect to SignUpActivity
             startActivity(new Intent(LoginActivity.this, SignUpActivity.class));
         });
 
         // Set up forgot password click listener
         forgotPassword.setOnClickListener(v -> {
-            // Redirect to PasswordResetActivity
             startActivity(new Intent(LoginActivity.this, PasswordResetActivity.class));
         });
     }
@@ -89,7 +100,7 @@ public class LoginActivity extends AppCompatActivity {
         if (hashedInputPassword.equals(storedHashedPassword)) {
             // Retrieve the user ID from the database
             int userId = dbHelper.getUserIdByEmail(email);
-            Log.d("LoginActivity", "Retrieved userId: " + userId); // Log the retrieved userId
+            Log.d("LoginActivity", "Retrieved userId from DB: " + userId);  // Log this value to ensure it's correct
 
             // Check if the user ID is valid (not -1)
             if (userId == -1) {
@@ -98,21 +109,22 @@ public class LoginActivity extends AppCompatActivity {
                 return; // Stop the login process if userId is invalid
             }
 
-            // Extract only the username (before the '@' symbol)
-            String username = email.contains("@") ? email.split("@")[0] : email;  // Save only the part before '@'
-            Log.d("LoginActivity", "Retrieved username: " + username);
+            // Retrieve the updated username from the database (not from email)
+            String username = dbHelper.getUsernameById(userId);  // Fetch the username using the userId
+            Log.d("LoginActivity", "Retrieved updated username: " + username);
 
-            // Clear previous user data and save new credentials
-            clearUserData();
-            saveUserId(userId);  // Save the user ID
-            saveUsername(username); // Save only the username
+            // Save the username (updated, not from email)
+            saveUsername(username); // Save the updated username
+
+            // Save the user ID
+            saveUserId(userId);
 
             // Save login time
             saveLoginTime();
 
             // Save email if "Remember Me" is checked
             if (rememberMeCheckbox.isChecked()) {
-                saveCredentials(email); // Save the email
+                saveCredentials(email, userId); // Save the email
             } else {
                 clearSavedCredentials(); // Clear the saved email
             }
@@ -128,6 +140,7 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
+
     private void saveLoginTime() {
         // Get the current timestamp and format it
         String currentTime = DateUtils.formatDate(new Date());
@@ -137,63 +150,66 @@ public class LoginActivity extends AppCompatActivity {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putString("LAST_LOGIN_TIME", currentTime);
         editor.apply();
-        Log.d("LoginActivity", "Login time saved: " + currentTime);
-    }
-
-    private void clearUserData() {
-        SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.clear(); // Clear all user data in MyAppPrefs
-        editor.apply();
-        Log.d("LoginActivity", "User data cleared");
     }
 
     private void saveUserId(int userId) {
-        if (userId != -1) {
-            SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putInt("USER_ID", userId); // Save the user ID
-            editor.apply();
-            Log.d("LoginActivity", "User ID saved: " + userId);
-        } else {
-            Log.e("LoginActivity", "Error: Invalid userId (-1), not saving.");
-        }
+        SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);  // Use the same SharedPreferences name
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putInt("USER_ID", userId);
+        editor.apply();
     }
+
 
     private void saveUsername(String username) {
         SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("USERNAME", username); // Save the username only (no email)
+        editor.putString("USERNAME", username); // Save the updated username
         editor.apply();
-        Log.d("LoginActivity", "Username saved: " + username);
+        Log.d("LoginActivity", "Updated username saved: " + username);
     }
 
     private void loadSavedCredentials() {
-        SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE); // Updated to use the same prefs file
+        SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
         String savedEmail = sharedPreferences.getString("savedEmail", null);
+        int savedUserId = sharedPreferences.getInt("USER_ID", -1);
+
+        Log.d("LoginActivity", "Loaded saved email: " + savedEmail);
+        Log.d("LoginActivity", "Loaded saved user ID: " + savedUserId);
+
+        // If email is saved, populate the UI
         if (savedEmail != null) {
             emailInput.setText(savedEmail);
             rememberMeCheckbox.setChecked(true);
-            Log.d("LoginActivity", "Loaded saved email: " + savedEmail);
         } else {
             Log.d("LoginActivity", "No saved email found.");
         }
+
+        if (savedUserId == -1) {
+            Log.e("LoginActivity", "No valid saved user ID found. It may not have been saved correctly.");
+        }
+
+        // Fetch and load the username
+        String username = sharedPreferences.getString("USERNAME", ""); // Fetch the stored updated username
+        Log.d("LoginActivity", "Loaded saved username: " + username);
+        // You can now use the loaded username for UI or other purposes
     }
 
-    private void saveCredentials(String email) {
-        SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE); // Updated to use the same prefs file
+
+    private void saveCredentials(String email, int userId) {
+        SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
+
+        // Save email and user ID to SharedPreferences
         editor.putString("savedEmail", email);
+        editor.putInt("USER_ID", userId);  // Saving the user ID
         editor.apply();
-        Log.d("LoginActivity", "Saved email: " + email);
     }
 
     private void clearSavedCredentials() {
-        SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE); // Updated to use the same prefs file
+        SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.remove("savedEmail"); // Only remove email
+        editor.remove("savedEmail");
         editor.apply();
-        Log.d("LoginActivity", "Cleared saved email");
     }
 
     private boolean validateCredentials(String email, String password) {

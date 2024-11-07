@@ -83,7 +83,7 @@ public class Database extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 28) {  // Check if the database version is less than 27
+        if (oldVersion < 34) {
             // Add columns to the User table
             db.execSQL("ALTER TABLE " + TABLE_USER + " ADD COLUMN " +  " TEXT;");
             db.execSQL("ALTER TABLE " + TABLE_USER + " ADD COLUMN " + " INTEGER DEFAULT 0;");
@@ -98,15 +98,12 @@ public class Database extends SQLiteOpenHelper {
 
     public boolean checkUserExists(int userId, String email) {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT * FROM users WHERE user_id = ? AND email = ?",
+        Cursor cursor = db.rawQuery("SELECT * FROM User WHERE user_id = ? AND email = ?",
                 new String[]{String.valueOf(userId), email});
         boolean userExists = cursor.moveToFirst();
         cursor.close();
         return userExists;
     }
-
-
-    // In your Database class, add the following method:
 
 
     // Method to add a user
@@ -139,29 +136,16 @@ public class Database extends SQLiteOpenHelper {
         return result != -1;
     }
 
-    public String getUsernameByEmail(String email) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT " + COLUMN_USERNAME + " FROM " + TABLE_USER + " WHERE " + COLUMN_EMAIL + " = ?";
-        Cursor cursor = null;
-        String username = null;
+    public boolean updatePassword(String email, String newPassword, String salt) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_PASSWORD, newPassword);
+        values.put(COLUMN_SALT, salt);
 
-        try {
-            cursor = db.rawQuery(query, new String[]{email});
-            if (cursor.moveToFirst()) {
-                username = cursor.getString(0); // Assuming username is the first column in your query
-            } else {
-                Log.w("Database", "No username found for email: " + email);
-            }
-            Log.d("Database", "Username retrieved for email: " + email + ", Username: " + username);
-        } catch (Exception e) {
-            Log.e("Database", "Error querying username: " + e.getMessage());
-        } finally {
-            if (cursor != null) {
-                cursor.close(); // Always close the cursor
-            }
-        }
+        int rowsUpdated = db.update(TABLE_USER, values, COLUMN_EMAIL + " = ?", new String[]{email});
+        db.close();
 
-        return username;
+        return rowsUpdated > 0; // Returns true if the update was successful
     }
 
     // Method to check if email is registered
@@ -188,42 +172,95 @@ public class Database extends SQLiteOpenHelper {
 
 
     public int getUserIdByEmail(String email) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT " + COLUMN_USER_ID + " FROM " + TABLE_USER + " WHERE " + COLUMN_EMAIL + " = ?";
-        Cursor cursor = null;
-        int userId = -1;
-
-        try {
-            cursor = db.rawQuery(query, new String[]{email});
-            if (cursor.moveToFirst()) {
-                userId = cursor.getInt(0);
-                Log.d("Database", "User ID retrieved: " + userId + " for email: " + email);
-            } else {
-                Log.w("Database", "No user found for email: " + email);
-            }
-        } catch (Exception e) {
-            Log.e("Database", "Error querying user ID: " + e.getMessage());
-        } finally {
-            if (cursor != null) {
-                cursor.close(); // Always close the cursor
-            }
+        if (email == null || email.isEmpty()) {
+            Log.e("Database", "Email passed to getUserIdByEmail is null or empty.");
+            return -1;
         }
 
-        return userId;
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.query(
+                "User",
+                new String[]{"user_id", "email"},
+                "email = ?",
+                new String[]{email},
+                null, null, null
+        );
+
+        if (cursor != null && cursor.moveToFirst()) {
+            int userIdColumnIndex = cursor.getColumnIndex("user_id");
+            if (userIdColumnIndex != -1) {
+                int userId = cursor.getInt(userIdColumnIndex);
+                cursor.close();
+                return userId;
+            } else {
+                Log.e("Database", "Column 'user_id' not found.");
+                cursor.close();
+                return -1;
+            }
+        } else {
+            Log.e("Database", "No result found for email: " + email);
+            return -1;  // Return -1 if no result found
+        }
+    }
+    public String getUsernameById(int userId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        // Query the User table for the username using user_id
+        Cursor cursor = db.query("User", new String[]{"email", "username"}, "user_id = ?",
+                new String[]{String.valueOf(userId)}, null, null, null);
+
+        String username = null;  // Default return value if no username is found
+
+
+        do {
+            if (cursor != null && cursor.moveToFirst()) {
+                // Ensure that the column indices are valid
+                int emailColumnIndex = cursor.getColumnIndex("email");
+                int usernameColumnIndex = cursor.getColumnIndex("username");
+
+                if (emailColumnIndex >= 0 && usernameColumnIndex >= 0) {  // Check if the columns exist
+                    String email = cursor.getString(emailColumnIndex);
+                    String profileUsername = cursor.getString(usernameColumnIndex);
+
+                    // If the username exists and is not null, return it
+                    if (profileUsername != null && !profileUsername.isEmpty()) {
+                        username = profileUsername;
+                    } else if (email != null && email.contains("@")) {
+                        // If no updated username exists, fallback to the part before '@' from the email
+                        username = email.split("@")[0];
+                    }
+                }
+            }
+        } while (false);  // Loop will execute only once
+
+        // Close the cursor after use
+        if (cursor != null) {
+            cursor.close();
+        }
+
+        return username;  // Return the username (or null if not found)
     }
 
-    // Method to get user details (hashed password and salt) by email
     public String[] getUserDetails(String email) {
         SQLiteDatabase db = this.getReadableDatabase();
         String query = "SELECT " + COLUMN_PASSWORD + ", " + COLUMN_SALT + " FROM " + TABLE_USER + " WHERE " + COLUMN_EMAIL + " = ?";
         Cursor cursor = db.rawQuery(query, new String[]{email});
 
         if (cursor != null && cursor.moveToFirst()) {
-            String hashedPassword = cursor.getString(0);
-            String salt = cursor.getString(1);
-            cursor.close();
-            Log.d("Database", "User details retrieved for email: " + email);
-            return new String[]{hashedPassword, salt};
+            // Check if the columns exist in the result set
+            int passwordIndex = cursor.getColumnIndex(COLUMN_PASSWORD);
+            int saltIndex = cursor.getColumnIndex(COLUMN_SALT);
+
+            // Ensure that the column indices are valid (>= 0)
+            if (passwordIndex >= 0 && saltIndex >= 0) {
+                String hashedPassword = cursor.getString(passwordIndex);
+                String salt = cursor.getString(saltIndex);
+                cursor.close();
+                Log.d("Database", "User details retrieved for email: " + email);
+                return new String[]{hashedPassword, salt};
+            } else {
+                Log.e("Database", "Invalid column indices for password or salt.");
+            }
         }
 
         if (cursor != null) cursor.close();
@@ -240,13 +277,13 @@ public class Database extends SQLiteOpenHelper {
         String progress = "Not Started";
 
         ContentValues values = new ContentValues();
-        values.put(COLUMN_TASK_TITLE, taskName);  // taskName should be inserted into COLUMN_TASK_TITLE
+        values.put(COLUMN_TASK_TITLE, taskName);
         values.put(COLUMN_TASK_DESCRIPTION, taskDescription);
-        values.put(COLUMN_TASK_START_DATE, startDate);  // Ensure this column exists in your DB
+        values.put(COLUMN_TASK_START_DATE, startDate);
         values.put(COLUMN_END_DATE, endDate);
         values.put(COLUMN_TASK_USER_ID, userId);
-        values.put(COLUMN_TASK_GROUP, taskGroup);  // Corrected to insert taskGroup here
-        values.put(COLUMN_TASK_COMPLETED, isCompleted ? 1 : 0);  // Store as 1 for true and 0 for false
+        values.put(COLUMN_TASK_GROUP, taskGroup);
+        values.put(COLUMN_TASK_COMPLETED, isCompleted ? 1 : 0);
         values.put(COLUMN_TIME_TO_COMPLETE, completionTime);
         values.put(COLUMN_TASK_PROGRESS, progress);  // Default progress is "Not Started"
 
@@ -331,105 +368,6 @@ public class Database extends SQLiteOpenHelper {
 
 
 
-
-    public List<Task> getNotStartedTasks(String userId) {
-        List<Task> tasks = new ArrayList<>();
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        // Query to fetch tasks that are "Not Started" or "To Do"
-        String selection = COLUMN_TASK_USER_ID + " = ? AND " + COLUMN_TASK_PROGRESS + " = ?";
-        String[] selectionArgs = {userId, "To Do"};  // Change to "Not Started" if that's the actual value
-
-        Cursor cursor = db.query(TABLE_TASK, null, selection, selectionArgs, null, null, null);
-
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
-                Task task = cursorToTask(cursor);
-                tasks.add(task);
-            } while (cursor.moveToNext());
-            cursor.close();
-        }
-        return tasks;
-    }
-
-    public List<Task> getInProgressTasks(String userId) {
-        List<Task> tasks = new ArrayList<>();
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        // Query to fetch tasks that are "In Progress"
-        String selection = COLUMN_TASK_USER_ID + " = ? AND " + COLUMN_TASK_PROGRESS + " = ?";
-        String[] selectionArgs = {userId, "In Progress"};
-
-        Cursor cursor = db.query(TABLE_TASK, null, selection, selectionArgs, null, null, null);
-
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
-                Task task = cursorToTask(cursor);
-                tasks.add(task);
-            } while (cursor.moveToNext());
-            cursor.close();
-        }
-        return tasks;
-    }
-
-
-
-    public List<Task> getCompletedTasks(String userId) {
-        List<Task> tasks = new ArrayList<>();
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        // Query to fetch completed tasks
-        String selection = COLUMN_TASK_USER_ID + " = ? AND " + COLUMN_TASK_PROGRESS + " = ?";
-        String[] selectionArgs = {userId, "Completed"};
-
-        Cursor cursor = db.query(TABLE_TASK, null, selection, selectionArgs, null, null, null);
-
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
-                Task task = cursorToTask(cursor);
-                tasks.add(task);
-            } while (cursor.moveToNext());
-            cursor.close();
-        }
-        return tasks;
-    }
-    private Task cursorToTask(Cursor cursor) {
-        int id = -1;
-        String title = null;
-        String description = null;
-        String startDate = null;
-        String endDate = null;
-        String group = null;
-        boolean isCompleted = false;
-        String taskProgress = null;
-        String timeToComplete = null;
-
-        int idIndex = cursor.getColumnIndex(COLUMN_TASK_ID);
-        int titleIndex = cursor.getColumnIndex(COLUMN_TASK_TITLE);
-        int descriptionIndex = cursor.getColumnIndex(COLUMN_TASK_DESCRIPTION);
-        int startDateIndex = cursor.getColumnIndex(COLUMN_TASK_START_DATE);
-        int endDateIndex = cursor.getColumnIndex(COLUMN_END_DATE);
-        int groupIndex = cursor.getColumnIndex(COLUMN_TASK_GROUP);
-        int completedIndex = cursor.getColumnIndex(COLUMN_TASK_COMPLETED);
-        int taskProgressIndex = cursor.getColumnIndex(COLUMN_TASK_PROGRESS);
-        int timeToCompleteIndex = cursor.getColumnIndex(COLUMN_TIME_TO_COMPLETE);
-
-        if (idIndex != -1) id = cursor.getInt(idIndex);
-        if (titleIndex != -1) title = cursor.getString(titleIndex);
-        if (descriptionIndex != -1) description = cursor.getString(descriptionIndex);
-        if (startDateIndex != -1) startDate = cursor.getString(startDateIndex);
-        if (endDateIndex != -1) endDate = cursor.getString(endDateIndex);
-        if (groupIndex != -1) group = cursor.getString(groupIndex);
-        if (completedIndex != -1) isCompleted = cursor.getInt(completedIndex) > 0;
-        if (taskProgressIndex != -1) taskProgress = cursor.getString(taskProgressIndex);
-        if (timeToCompleteIndex != -1) timeToComplete = cursor.getString(timeToCompleteIndex);
-
-        return new Task(id, title, description, startDate, endDate, group, isCompleted, taskProgress, timeToComplete);
-    }
-
-
-
-
     public Task getTaskByProjectNameAndUserId(String projectName, int userId) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery(
@@ -437,7 +375,7 @@ public class Database extends SQLiteOpenHelper {
                 new String[] { projectName, String.valueOf(userId) });
 
         if (cursor != null && cursor.moveToFirst()) {
-            // Check and log column names
+
             String[] columnNames = cursor.getColumnNames();
             for (String column : columnNames) {
                 Log.d("CursorColumns", column);
@@ -496,24 +434,6 @@ public class Database extends SQLiteOpenHelper {
         }
     }
 
-
-    public boolean taskExists(int taskId, int userId) {
-        // Query to check if the task exists for the given taskId and userId
-        String query = "SELECT COUNT(*) FROM Task WHERE task_id = ? AND user_id = ?";
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(taskId), String.valueOf(userId)});
-
-        boolean exists = false;
-        if (cursor.moveToFirst()) {
-            int count = cursor.getInt(0);
-            if (count > 0) {
-                exists = true;
-            }
-        }
-        cursor.close();
-        return exists;
-    }
-
     public boolean updateTask(int taskId, String title, String description, String endDate, String timeToComplete, String taskProgress, int userId) {
         if (taskId == -1 || userId == -1) {
             Log.e("UpdateTask", "Invalid taskId or userId: taskId = " + taskId + ", userId = " + userId);
@@ -562,100 +482,7 @@ public class Database extends SQLiteOpenHelper {
         }
     }
 
-
-
-
-    private String formatEndDate(String endDate) {
-        try {
-            // Check if the endDate contains time. If not, we will append the default time "00:00:00"
-            if (endDate.length() == 10) {
-                // If the format is yyyy-MM-dd (date only), add default time 00:00:00
-                endDate += " 00:00:00";
-            }
-
-            // Try to parse the endDate using the format yyyy-MM-dd HH:mm:ss
-            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-            SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-
-            // Parse the input date
-            Date parsedDate = inputFormat.parse(endDate);
-
-            if (parsedDate != null) {
-                // Return the formatted date in the correct format (yyyy-MM-dd HH:mm:ss)
-                return outputFormat.format(parsedDate);
-            } else {
-                // If parsing failed, return null
-                return null;
-            }
-        } catch (ParseException e) {
-            Log.e("UpdateTask", "Error formatting endDate: " + e.getMessage());
-            return null;  // Return null if parsing or formatting failed
-        }
-    }
-
-
-
-
-
-    public List<Task> getTasksByStatus(int userId, String dateString, String status) {
-        List<Task> tasks = new ArrayList<>();
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        // Query to fetch tasks based on user ID, start date, and task progress status
-        String query = "SELECT * FROM " + TABLE_TASK +
-                " WHERE " + COLUMN_TASK_USER_ID + " = ? AND " +
-                COLUMN_TASK_START_DATE + " LIKE ? AND " +  // Use LIKE to match date part only
-                COLUMN_TASK_PROGRESS + " = ?";
-
-        // Adjust date format to match only the date part
-        String datePattern = dateString + "%"; // Match the start_date that begins with the provided date
-
-        Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(userId), datePattern, status});
-
-        if (cursor != null && cursor.moveToFirst()) {
-            int idIndex = cursor.getColumnIndex(COLUMN_TASK_ID);
-            int titleIndex = cursor.getColumnIndex(COLUMN_TASK_TITLE);
-            int descriptionIndex = cursor.getColumnIndex(COLUMN_TASK_DESCRIPTION);
-            int startDateIndex = cursor.getColumnIndex(COLUMN_TASK_START_DATE);
-            int endDateIndex = cursor.getColumnIndex(COLUMN_END_DATE);
-            int groupIndex = cursor.getColumnIndex(COLUMN_TASK_GROUP);
-            int completedIndex = cursor.getColumnIndex(COLUMN_TASK_COMPLETED);
-            int progressIndex = cursor.getColumnIndex(COLUMN_TASK_PROGRESS);
-            int timeToCompleteIndex = cursor.getColumnIndex(COLUMN_TIME_TO_COMPLETE);
-
-            // Check if any column indices are invalid
-            if (idIndex == -1 || titleIndex == -1 || startDateIndex == -1 || progressIndex == -1) {
-                Log.e("Database", "One or more column names are invalid");
-                cursor.close();
-                return tasks; // Return empty list if there are errors
-            }
-
-            do {
-                int id = cursor.getInt(idIndex);
-                String title = cursor.getString(titleIndex);
-                String description = cursor.getString(descriptionIndex); // Fetch the description
-                String startDate = cursor.getString(startDateIndex);
-                String endDate = cursor.getString(endDateIndex);
-                String group = cursor.getString(groupIndex); // Fetch the task group
-                boolean isCompleted = cursor.getInt(completedIndex) > 0; // Convert to boolean
-                String taskProgress = cursor.getString(progressIndex);
-                String timeToComplete = cursor.getString(timeToCompleteIndex); // Fetch time to complete
-
-                // Create the Task object with all fields
-                Task task = new Task(id, title, description, startDate, endDate, group, isCompleted, taskProgress, timeToComplete);
-                tasks.add(task);
-            } while (cursor.moveToNext());
-        }
-
-        if (cursor != null) {
-            cursor.close();
-        }
-        db.close();
-        return tasks;
-    }
-
-
-    public List<Task> getTasksByDateAndCategory(int userId, String date, String category, String taskProgress) {
+    public List<Task> getTasksByDateAndCategory(int userId, String date, String taskProgress) {
         SQLiteDatabase db = this.getReadableDatabase();
         List<Task> tasks = new ArrayList<>();
         Cursor cursor = null;
@@ -705,25 +532,20 @@ public class Database extends SQLiteOpenHelper {
         return tasks;
     }
 
-    /**
-     * Helper method to get a column value of type int with a default value if the column is not found.
-     */
+
+     // Helper method to get a column value of type int with a default value if the column is not found.
     private int getColumnValue(Cursor cursor, String columnName, int defaultValue) {
         int columnIndex = cursor.getColumnIndex(columnName);
         return columnIndex >= 0 ? cursor.getInt(columnIndex) : defaultValue;
     }
 
-    /**
-     * Helper method to get a column value of type String with a default value if the column is not found.
-     */
+     //Helper method to get a column value of type String with a default value if the column is not found.
     private String getColumnValue(Cursor cursor, String columnName, String defaultValue) {
         int columnIndex = cursor.getColumnIndex(columnName);
         return columnIndex >= 0 ? cursor.getString(columnIndex) : defaultValue;
     }
 
-    /**
-     * Helper method to get a column value of type long with a default value if the column is not found.
-     */
+     //Helper method to get a column value of type long with a default value if the column is not found.
     private long getColumnValue(Cursor cursor, String columnName, long defaultValue) {
         int columnIndex = cursor.getColumnIndex(columnName);
         return columnIndex >= 0 ? cursor.getLong(columnIndex) : defaultValue;
@@ -732,13 +554,11 @@ public class Database extends SQLiteOpenHelper {
     public List<Task> getTasksInProgress(int userId) {
         List<Task> tasksInProgress = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
-
-        // Modify the query to filter by both user_id and task_progress = 'In Progress'
         String selectQuery = "SELECT * FROM " + TABLE_TASK + " WHERE " + COLUMN_TASK_PROGRESS + " = ? AND " + COLUMN_USER_ID + " = ?";
         Cursor cursor = db.rawQuery(selectQuery, new String[] { "In Progress", String.valueOf(userId) });
 
         if (cursor != null) {
-            // Debugging - Check column names
+
             int columnCount = cursor.getColumnCount();
             for (int i = 0; i < columnCount; i++) {
                 Log.d("Database", "Column " + i + ": " + cursor.getColumnName(i));  // Check column names
@@ -746,7 +566,7 @@ public class Database extends SQLiteOpenHelper {
 
             if (cursor.moveToFirst()) {
                 do {
-                    // Log column names to ensure they are correct
+
                     int columnId = cursor.getColumnIndex(COLUMN_TASK_ID);
                     int columnTitle = cursor.getColumnIndex(COLUMN_TASK_TITLE);
                     int columnDescription = cursor.getColumnIndex(COLUMN_TASK_DESCRIPTION);
@@ -797,68 +617,61 @@ public class Database extends SQLiteOpenHelper {
     public List<TaskGroup> getTaskGroupsWithCount(int userId) {
         List<TaskGroup> taskGroups = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
-
-        // SQL query to get task group names and their respective counts, filtered by userId
         String selectQuery = "SELECT " + COLUMN_TASK_GROUP + ", COUNT(*) AS task_count " +
                 "FROM " + TABLE_TASK +
                 " WHERE " + COLUMN_TASK_USER_ID + " = ? " +  // Filter by userId
                 "GROUP BY " + COLUMN_TASK_GROUP;
 
-        // Use the userId to filter tasks for the logged-in user
+
         Cursor cursor = db.rawQuery(selectQuery, new String[]{String.valueOf(userId)});
 
         if (cursor != null && cursor.moveToFirst()) {
-            // Get the column index for 'task_group' and 'task_count'
+
             int groupNameIndex = cursor.getColumnIndex(COLUMN_TASK_GROUP);
             int taskCountIndex = cursor.getColumnIndex("task_count");
 
-            // Check if the column indices are valid
+
             if (groupNameIndex != -1 && taskCountIndex != -1) {
-                // Iterate through the cursor to fetch all task groups for the logged-in user
+
                 do {
                     String groupName = cursor.getString(groupNameIndex);
                     int taskCount = cursor.getInt(taskCountIndex);
 
-                    // Create a TaskGroup object and add it to the list
+
                     TaskGroup taskGroup = new TaskGroup(groupName, taskCount);
                     taskGroups.add(taskGroup);
-                } while (cursor.moveToNext()); // Move to the next row in the cursor
+                } while (cursor.moveToNext());
             }
         }
 
-        cursor.close();  // Always close the cursor when you're done with it
-        return taskGroups; // Return the list of task groups
+        cursor.close();
+        return taskGroups;
     }
 
 
-    public void updateUsername(String email, String newUsername) {
+    public boolean updateUsername(int userId, String newUsername) {
+        if (userId == -1) {
+            Log.d("Database", "Invalid userId: -1. Cannot update username.");
+            return false; // Do nothing if userId is invalid
+        }
         SQLiteDatabase db = this.getWritableDatabase();
-
-        // Log to check the email and new username being passed
-        Log.d("Database", "Updating username for email: " + email + " to: " + newUsername);
-
-        // Use email to find the correct user and update their username
         ContentValues values = new ContentValues();
-        values.put("username", newUsername);  // "username" is the column name in your DB
+        values.put("username", newUsername);
 
-        // Make sure you're updating the row where the email matches
-        String selection = "email = ?";
-        String[] selectionArgs = { email };
+        // Log the update attempt
+        Log.d("Database", "Attempting to update username for user_id: " + userId + " to " + newUsername);
 
-        // Update query
-        int rowsUpdated = db.update(TABLE_USER, values, selection, selectionArgs);
+        int rowsAffected = db.update("User", values, "user_id = ?", new String[]{String.valueOf(userId)});
+        db.close();
 
-        if (rowsUpdated > 0) {
-            Log.d("Database", "Username updated successfully for email: " + email);
+        if (rowsAffected > 0) {
+            Log.d("Database", "Username updated successfully for user_id: " + userId);
         } else {
-            Log.d("Database", "No rows updated for email: " + email);
+            Log.d("Database", "Failed to update username for user_id: " + userId);
         }
 
-        db.close();
+        return rowsAffected > 0;
     }
-
-
-
 }
 
 

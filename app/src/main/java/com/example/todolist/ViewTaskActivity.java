@@ -15,8 +15,6 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import org.w3c.dom.Text;
-
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -55,7 +53,11 @@ public class ViewTaskActivity extends AppCompatActivity {
 
         populateCalendar();
         setupClickListeners();
-        ReminderManager.scheduleReminders(getApplicationContext());
+
+        // Call scheduleReminders only once, not on every Activity restart
+        if (userId != -1) {
+            ReminderManager.scheduleReminders(getApplicationContext(), userId);
+        }
     }
 
     private int getUserIdFromIntentOrPrefs() {
@@ -138,7 +140,6 @@ public class ViewTaskActivity extends AppCompatActivity {
         return dateView;
     }
 
-
     private void handleDateSelection(View dateView, TextView dateText, TextView monthText, TextView dayText, int year, int month, int day) {
         if (selectedDateView != null) {
             resetDateView(selectedDateView);
@@ -153,7 +154,6 @@ public class ViewTaskActivity extends AppCompatActivity {
 
         highlightAllCategory();
     }
-
 
     private void highlightToday(int currentDay, int daysInMonth, int month, int year) {
         if (currentDay <= daysInMonth && month == Calendar.getInstance().get(Calendar.MONTH) && year == Calendar.getInstance().get(Calendar.YEAR)) {
@@ -245,7 +245,7 @@ public class ViewTaskActivity extends AppCompatActivity {
         Log.d("CategorySelection", "Category: " + category + ", TaskProgress: " + taskProgress);
 
         try {
-            tasks = database.getTasksByDateAndCategory(userId, selectedDateString, category, taskProgress);
+            tasks = database.getTasksByDateAndCategory(userId, selectedDateString, taskProgress);
         } catch (Exception e) {
             Log.e("FetchTasksError", "Error fetching tasks for category: " + category + ", progress: " + taskProgress, e);
         }
@@ -256,9 +256,6 @@ public class ViewTaskActivity extends AppCompatActivity {
 
         displayTasks(tasks);
     }
-
-
-
 
     private void displayTasks(List<Task> tasks) {
         taskContainer.removeAllViews();
@@ -277,20 +274,20 @@ public class ViewTaskActivity extends AppCompatActivity {
                 params.setMargins(50, 30, 50, 30); // Adjust bottom margin as needed
                 taskView.setLayoutParams(params);
 
-                // Find and set data to views inside task_item
-                TextView taskGroup = taskView.findViewById(R.id.taskGroup);
-                TextView taskTitle = taskView.findViewById(R.id.taskTitle);
+                // Find the correct views in the layout
+                TextView taskGroup = taskView.findViewById(R.id.taskGroup); // This is for the task description
+                TextView taskTitle = taskView.findViewById(R.id.taskTitle); // This is for the task title
                 TextView taskEndTime = taskView.findViewById(R.id.timeToComplete);
                 TextView taskProgress = taskView.findViewById(R.id.taskProgress);
 
-                taskTitle.setText(task.getTitle());
-                taskGroup.setText(task.getDescription());
-                taskEndTime.setText(task.getTimeToComplete());
-                taskProgress.setText(task.getTaskProgress());
+                // Assign the correct data to the views based on naming conventions
+                taskGroup.setText(task.getDescription());  // Set task description in the taskGroup view
+                taskTitle.setText(task.getTitle());        // Set task title in the taskTitle view
+                taskEndTime.setText(task.getTimeToComplete()); // Set time to complete
+                taskProgress.setText(task.getTaskProgress());  // Set task progress
 
                 taskContainer.addView(taskView);
             }
         }
     }
-
 }

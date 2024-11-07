@@ -90,7 +90,7 @@
 
                 <EditText
                     android:id="@+id/passwordInput"
-                    android:layout_width="match_parent"
+                    android:layout_width="212dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:background="@android:color/transparent"
@@ -100,6 +100,16 @@
                     android:padding="8dp"
                     android:textColor="#FFFFFF"
                     android:textColorHint="#BBBBBB" />
+                <ImageView
+                    android:id="@+id/eyeIcon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center_vertical"
+                    android:src="@drawable/baseline_visibility_off_24"
+                    app:tint="#FFFFFF"
+                    android:contentDescription="@string/toggle_password_visibility" />
+
+
             </LinearLayout>
 
             <!-- Remember Me and Forgot Password -->

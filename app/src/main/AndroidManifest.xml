@@ -41,9 +41,11 @@ package="com.example.todolist">
         <activity android:name=".ViewTaskActivity" android:exported="false"/>
         <activity android:name=".EditTask" android:exported="false"/>
         <activity android:name=".EditProfileActivity" android:exported="true" />
+        <activity android:name="PasswordResetActivity" android:exported="true"/>
+
 
         <!-- Add VerificationActivity here -->
-        <activity android:name=".VerificationActivity" android:exported="true"/>
+
 
         <!-- Notification Receiver -->
         <receiver android:name=".NotificationReceiver" android:exported="false"/>

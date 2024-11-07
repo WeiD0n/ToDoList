@@ -1,0 +1,5 @@
+<!-- res/drawable/rounded_status_background.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#E5D1FF" />
+    <corners android:radius="12dp" />
+</shape>

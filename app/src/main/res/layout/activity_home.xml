@@ -63,20 +63,21 @@
 
             <!-- Task Card -->
 
+
             <ImageView
                 android:id="@+id/logout_button"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:layout_alignParentEnd="true"
-                android:layout_alignParentBottom="true"
-                android:layout_marginStart="144dp"
-                android:layout_marginTop="24dp"
                 android:background="@drawable/logout"
                 android:clickable="true"
                 android:text="Logout"
                 android:textColor="@android:color/white"
-                app:layout_constraintStart_toEndOf="@id/username"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="1.0"
+                app:layout_constraintVertical_bias="0.0"
+                android:layout_marginEnd="12dp"
+                android:layout_marginTop="12dp" />
 
             <RelativeLayout
                 android:id="@+id/task_card_layout"
@@ -109,15 +110,6 @@
                     android:textColor="#4285F4" />
 
 
-                <ProgressBar
-                    android:id="@+id/progressCircle"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:indeterminate="true"
-                    android:indeterminateTint="#6E5BD3" />
-
             </RelativeLayout>
 
             <TextView
@@ -133,49 +125,60 @@
                 app:layout_constraintTop_toBottomOf="@id/task_card_layout" />
 
             <!-- Horizontal Scrollable Frame -->
+
+
             <HorizontalScrollView
                 android:id="@+id/horizontal_scroll_view"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:padding="16dp"
+                android:layout_marginTop="4dp"
                 android:scrollbars="none"
+                android:elevation="4dp"
+                android:background="@drawable/custom_shadow"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintStart_toEndOf="@id/in_progress_text"
                 app:layout_constraintTop_toBottomOf="@id/in_progress_text">
 
-                <LinearLayout
-                    android:id="@+id/task_container"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+            <LinearLayout
+                android:id="@+id/task_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="16dp"
+                android:background="@drawable/rounded_card_background"
+                android:orientation="horizontal"
+                android:padding="8dp">
 
-                    <!-- Add horizontal items here -->
-                </LinearLayout>
-            </HorizontalScrollView>
+            </LinearLayout>
 
-            <!-- New TextView after HorizontalScrollView -->
+        </HorizontalScrollView>
+
+
+
+
+    <!-- Vertical RecyclerView -->
             <TextView
                 android:id="@+id/scrollable_section_header"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="4dp"
                 android:text="Task Groups"
                 android:textColor="@android:color/black"
                 android:textSize="18sp"
                 android:textStyle="bold"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/horizontal_scroll_view" />
 
-            <!-- Vertical RecyclerView -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_view"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.0"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/scrollable_section_header" />
+                app:layout_constraintTop_toBottomOf="@id/scrollable_section_header"
+                app:layout_constraintVertical_bias="1.0" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </LinearLayout>
