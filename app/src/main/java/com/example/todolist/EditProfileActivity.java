@@ -32,7 +32,7 @@ import java.io.InputStream;
 public class EditProfileActivity extends AppCompatActivity {
 
     private EditText editName;
-    private Button btnSave, editProfilePictureButton;
+    private Button btnSave, btnCancel, editProfilePictureButton;
     private ImageView profileImageView;
     private Database dbHelper;
 
@@ -47,6 +47,7 @@ public class EditProfileActivity extends AppCompatActivity {
         // Initialize the views
         editName = findViewById(R.id.edit_name);
         btnSave = findViewById(R.id.btn_save);
+        btnCancel = findViewById(R.id.btn_cancel);  // Initialize the Cancel button
         editProfilePictureButton = findViewById(R.id.edit_profile_button_image);
         profileImageView = findViewById(R.id.profile_image);
 
@@ -61,28 +62,22 @@ public class EditProfileActivity extends AppCompatActivity {
 
         // Save button logic with username update functionality
         btnSave.setOnClickListener(v -> {
-            String newUsername = editName.getText().toString().trim();  // Get the new username input
+            String newUsername = editName.getText().toString().trim();
 
             // Get the current user ID from SharedPreferences
             int currentUserId = getCurrentUserId();
 
             if (currentUserId == -1) {
-                // If userId is invalid (not found), show a log message and inform the user
-                Log.d("EditProfileActivity", "Invalid userId: " + currentUserId + ". Cannot update username.");
+                Log.d("EditProfileActivity", "Invalid userId: " + currentUserId);
                 Toast.makeText(EditProfileActivity.this, "Unable to update username. Please log in again.", Toast.LENGTH_SHORT).show();
-                redirectToLogin();  // Example: Redirect to login screen
+                redirectToLogin();
                 return;
             }
 
-            // Proceed only if the new username is not empty
             if (!newUsername.isEmpty()) {
-                // Save the new username in SharedPreferences
                 saveUsername(newUsername);
-
-                // Update the username in the database
                 boolean updateSuccess = dbHelper.updateUsername(currentUserId, newUsername);
 
-                // Provide feedback to the user based on success or failure
                 if (updateSuccess) {
                     Toast.makeText(EditProfileActivity.this, "Username updated successfully!", Toast.LENGTH_SHORT).show();
                     Log.d("EditProfileActivity", "Username updated successfully for userId: " + currentUserId);
@@ -91,18 +86,18 @@ public class EditProfileActivity extends AppCompatActivity {
                     Log.d("EditProfileActivity", "Failed to update username for userId: " + currentUserId);
                 }
             } else {
-                // If the username is empty, prompt the user to enter a valid username
                 Toast.makeText(EditProfileActivity.this, "Please enter a valid username.", Toast.LENGTH_SHORT).show();
             }
 
-            // Optionally, you can return the updated data to the previous activity (if needed)
             Intent resultIntent = new Intent();
-            resultIntent.putExtra("updatedUsername", newUsername);  // Send updated username back if needed
+            resultIntent.putExtra("updatedUsername", newUsername);
             setResult(RESULT_OK, resultIntent);
-            finish();  // Close the current activity and go back
+            finish();
         });
 
-        // Set up the image picker dialog to select an image from gallery or take a photo with the camera
+        // Cancel button logic
+        btnCancel.setOnClickListener(v -> finish());  // Simply close the activity and go back
+
         editProfilePictureButton.setOnClickListener(v -> requestStoragePermission());
     }
 
@@ -110,20 +105,20 @@ public class EditProfileActivity extends AppCompatActivity {
     private void saveUsername(String newUsername) {
         SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("USERNAME", newUsername);  // Save the updated username
+        editor.putString("USERNAME", newUsername);
         editor.apply();
     }
 
     // Method to retrieve the current user's ID from SharedPreferences
     private int getCurrentUserId() {
-        SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);  // Uses the same SharedPreferences name
-        return prefs.getInt("USER_ID", -1);  // Correct key for userId
+        SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+        return prefs.getInt("USER_ID", -1);
     }
 
     // Method to retrieve the current username from SharedPreferences
     private String getCurrentUsername() {
         SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-        return prefs.getString("USERNAME", ""); // Fetch username using the correct key
+        return prefs.getString("USERNAME", "");
     }
 
     // Method to load the profile image from SharedPreferences
@@ -132,30 +127,27 @@ public class EditProfileActivity extends AppCompatActivity {
         String imageUriString = prefs.getString("PROFILE_IMAGE_URI", "");
         if (!imageUriString.isEmpty()) {
             Uri imageUri = Uri.parse(imageUriString);
-
-            // Request URI permissions for accessing the image
             try {
                 getContentResolver().takePersistableUriPermission(imageUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                // Decode and load the image based on the API level
                 loadImage(imageUri);
             } catch (SecurityException e) {
                 Toast.makeText(this, "Permission error: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
         } else {
-            profileImageView.setImageResource(R.drawable.base_profile);  // Default image
+            profileImageView.setImageResource(R.drawable.base_profile);
         }
     }
 
     private void loadImage(Uri imageUri) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) { // API 28 or above
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             loadImageWithImageDecoder(imageUri);
-        } else { // For API levels below 28
+        } else {
             loadImageWithBitmapFactory(imageUri);
         }
     }
 
     private void loadImageWithImageDecoder(Uri imageUri) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {  // Check if API level is 28 or above
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             try {
                 ImageDecoder.Source source = ImageDecoder.createSource(getContentResolver(), imageUri);
                 Bitmap bitmap = ImageDecoder.decodeBitmap(source);
@@ -165,13 +157,10 @@ public class EditProfileActivity extends AppCompatActivity {
                 } else {
                     Toast.makeText(this, "Error loading image", Toast.LENGTH_SHORT).show();
                 }
-            } catch (IllegalArgumentException e) {
-                Toast.makeText(this, "Invalid image format: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            } catch (SecurityException | IOException e) {
-                Toast.makeText(this, "Permission error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            } catch (IOException e) {
+                Toast.makeText(this, "Error loading image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         } else {
-            // Handle case when ImageDecoder is not available (API level < 28)
             loadImageWithBitmapFactory(imageUri);
         }
     }
@@ -187,16 +176,13 @@ public class EditProfileActivity extends AppCompatActivity {
             } else {
                 Toast.makeText(this, "Error loading image", Toast.LENGTH_SHORT).show();
             }
-        } catch (FileNotFoundException e) {
-            Toast.makeText(this, "File not found: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
             Toast.makeText(this, "Error loading image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
-    // Request storage permission
     private void requestStoragePermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // API 33+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_MEDIA_IMAGES}, STORAGE_PERMISSION_REQUEST_CODE);
             } else {
@@ -211,126 +197,14 @@ public class EditProfileActivity extends AppCompatActivity {
         }
     }
 
-    // Open the gallery to select an image
     private void openGallery() {
         Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        galleryIntent.setType("image/*");  // Only show images
+        galleryIntent.setType("image/*");
         startActivityForResult(galleryIntent, GALLERY_REQUEST_CODE);
     }
 
-    // Handle the result of the image picking or camera capture
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (resultCode == RESULT_OK && data != null) {
-            if (requestCode == GALLERY_REQUEST_CODE) {
-                Uri imageUri = data.getData();
-
-                if (imageUri != null) {
-                    Log.d("ImageSelection", "Image URI: " + imageUri.toString());
-
-                    // Copy the selected image to local storage
-                    Uri localImageUri = copyImageToLocalStorage(imageUri);
-
-                    if (localImageUri != null) {
-                        setProfileImage(localImageUri);  // Set the image in the ImageView
-                        saveProfileImageUri(localImageUri);  // Save the URI in SharedPreferences
-                    } else {
-                        Toast.makeText(this, "Error copying image to local storage", Toast.LENGTH_SHORT).show();
-                    }
-                } else {
-                    Log.d("ImageSelection", "No image selected");
-                    Toast.makeText(this, "No image selected", Toast.LENGTH_SHORT).show();
-                }
-            }
-        } else {
-            Log.d("ImageSelection", "Data is null");
-        }
-    }
-
-    // Method to set the profile image after selecting from the gallery
-    private void setProfileImage(Uri imageUri) {
-        try {
-            // Load and display the image from internal storage
-            loadImage(imageUri);
-        } catch (SecurityException e) {
-            Toast.makeText(this, "Permission error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    // Method to save the image URI to SharedPreferences
-    private void saveProfileImageUri(Uri imageUri) {
-        SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("PROFILE_IMAGE_URI", imageUri.toString());  // Save the image URI as a string
-        editor.apply();
-    }
-
-
-    private Uri copyImageToLocalStorage(Uri imageUri) {
-        try {
-            // Open an input stream from the original URI
-            InputStream inputStream = getContentResolver().openInputStream(imageUri);
-            if (inputStream != null) {
-                // Create a file in the app's internal storage
-                String fileName = "profile_image.png";
-                File file = new File(getFilesDir(), fileName);
-                FileOutputStream outputStream = new FileOutputStream(file);
-
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = inputStream.read(buffer)) > 0) {
-                    outputStream.write(buffer, 0, length);
-                }
-
-                outputStream.close();
-                inputStream.close();
-
-                // Return the URI of the copied file in internal storage
-                return Uri.fromFile(file);
-            }
-        } catch (IOException e) {
-            Toast.makeText(this, "Failed to save image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-        return null;
-    }
-
-    // Handle runtime permission result
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                openGallery();
-            } else {
-                Toast.makeText(this, "Storage permission is required to select an image", Toast.LENGTH_SHORT).show();
-
-                // Check if the user denied the permission permanently
-                if (!ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
-                    showPermissionDialog();
-                }
-            }
-        }
-    }
-
-    // Show a dialog when the permission is permanently denied
-    private void showPermissionDialog() {
-        new AlertDialog.Builder(this)
-                .setMessage("Storage permission is needed to select an image. Please enable it in app settings.")
-                .setPositiveButton("OK", (dialog, which) -> {
-                    // Open the app settings to manually enable permission
-                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                            Uri.fromParts("package", getPackageName(), null));
-                    startActivity(intent);
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
     private void redirectToLogin() {
-        Intent loginIntent = new Intent(EditProfileActivity.this, LoginActivity.class);  // Adjust to your login activity
+        Intent loginIntent = new Intent(EditProfileActivity.this, LoginActivity.class);
         startActivity(loginIntent);
         finish();
     }
