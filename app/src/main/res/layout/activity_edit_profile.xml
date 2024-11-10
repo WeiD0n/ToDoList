@@ -9,93 +9,93 @@
     <!-- Profile Picture Section -->
 
     <!-- Edit Profile Picture Button -->
+
+
+    <!-- Name EditText -->
+
     <ImageView
         android:id="@+id/profile_image"
         android:layout_width="60dp"
         android:layout_height="60dp"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="124dp"
+        android:layout_marginTop="20dp"
         android:background="@drawable/rounded_edit_profile_background"
         android:contentDescription="Profile Picture"
         android:src="@drawable/base_profile"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <Button
-        android:id="@+id/edit_profile_button_image"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Edit Picture"
-        android:layout_marginTop="8dp"
-        android:backgroundTint="@color/white"
-        android:textColor="#5094e4"
-        android:textStyle="italic"
-        android:textSize="20dp"
-        app:layout_constraintTop_toBottomOf="@id/profile_image"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent" />
-
-    <!-- Name EditText -->
     <TextView
         android:id="@+id/text_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Edit Username"
         android:textSize="16sp"
-        android:paddingLeft="10dp"
         android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@id/edit_profile_button_image"
-        app:layout_constraintLeft_toLeftOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/profile_image"
+        app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- EditText with Space Between TextView -->
+    <!-- GridView for selecting profile picture -->
+
+    <!-- Save Button (Update Info) -->
+
     <EditText
         android:id="@+id/edit_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
         android:hint="Enter your name"
         android:inputType="textPersonName"
         android:padding="10dp"
         android:textColor="#000000"
-        android:layout_marginTop="15dp"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintLeft_toLeftOf="@id/text_name"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/text_name" />
 
-
-    <Button
-        android:id="@+id/btn_save"
-        android:layout_width="wrap_content"
+    <GridView
+        android:id="@+id/imageGridView"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="164dp"
-        android:backgroundTint="#5094e4"
-        android:text="Update Info"
-        android:textColor="#FFFFFF"
+        android:layout_marginTop="36dp"
+        android:horizontalSpacing="10dp"
+        android:numColumns="3"
+        android:verticalSpacing="10dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.291"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/edit_name" />
 
     <Button
-        android:id="@+id/btn_cancel"
-        android:layout_width="130dp"
+        android:id="@+id/btn_save"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="164dp"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="#5094e4"
+        android:text="Update Info"
+        android:textColor="#FFFFFF"
+        app:layout_constraintTop_toBottomOf="@id/imageGridView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5" /> <!-- Horizontally centered -->
+
+    <!-- Cancel Button -->
+    <Button
+        android:id="@+id/btn_cancel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:backgroundTint="#5094e4"
         android:text="Cancel"
         android:textColor="#FFFFFF"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.839"
-        app:layout_constraintLeft_toLeftOf="@id/btn_save"
-        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_save"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/edit_name" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5" /> <!-- Horizontally centered -->
 
 </androidx.constraintlayout.widget.ConstraintLayout>

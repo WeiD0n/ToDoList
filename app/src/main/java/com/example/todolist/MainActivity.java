@@ -46,10 +46,7 @@ public class MainActivity extends AppCompatActivity {
         // If no valid user found or no user logged in, go to the Login screen
         navigateToLogin();
 
-        // Schedule reminders after login or app startup (only if the user is valid)
-        if (userId != -1) {  // Ensure only scheduling reminders for a valid user
-            ReminderManager.scheduleReminders(getApplicationContext(), userId);
-        }
+
     }
 
     // Method to clear any saved login data

@@ -4,16 +4,10 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.text.SpannableString;
-import android.text.Spanned;
-import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -29,14 +23,15 @@ import java.util.List;
 
 public class HomeActivity extends AppCompatActivity {
 
-    private int userId; // Declare userId at the class level
-    private LinearLayout taskContainer; // Container to hold the task views for In Progress tasks
-    private RecyclerView recyclerView; // RecyclerView for tasks grouped by categories
-    private TaskGroupAdapter taskGroupAdapter; // Adapter for RecyclerView (task groups with counts)
-    private ImageView profileImageView;  // Declare ImageView for profile picture
+    private int userId;
+    private LinearLayout taskContainer;
+    private RecyclerView recyclerView;
+    private TaskGroupAdapter taskGroupAdapter;
+    private ImageView profileImageView;
     private ImageView homeButton;
     private ImageView editProfileButton;
     private ImageView editTaskImageView;
+
     private static final int STORAGE_PERMISSION_REQUEST_CODE = 1;
     private static final int EDIT_PROFILE_REQUEST_CODE = 2;
 
@@ -47,33 +42,38 @@ public class HomeActivity extends AppCompatActivity {
         setContentView(R.layout.activity_home);
 
         // Initialize buttons and ImageViews
-        homeButton = findViewById(R.id.home_button_image);  // Ensure this ID matches your XML
-        editProfileButton = findViewById(R.id.edit_profile_button_image);  // Initialize the edit profile button
+        homeButton = findViewById(R.id.home_button_image);
+        editProfileButton = findViewById(R.id.edit_profile_button_image);
         profileImageView = findViewById(R.id.profile_image);
-        editTaskImageView = findViewById(R.id.edit_task_image);// Initialize the profile image view
-        findViewById(R.id.viewTaskButton);
+
+        editTaskImageView = findViewById(R.id.edit_task_image);
 
         // Shared preferences and user ID setup
         SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-        userId = sharedPreferences.getInt("USER_ID", -1);  // Default to -1 if not found
+        userId = sharedPreferences.getInt("USER_ID", -1);
         String username = sharedPreferences.getString("USERNAME", "User");
 
         // Check if userId is valid
         if (userId == -1) {
             Log.d("HomeActivity", "Invalid userId: " + userId + ". Cannot proceed.");
-            redirectToLogin();  // Redirect to login if invalid
+            redirectToLogin();
             return;
         }
 
         // Extract username and update UI
         if (username.contains("@")) {
-            username = username.split("@")[0];  // Extract username part before '@'
+            username = username.split("@")[0];
         }
         TextView usernameTextView = findViewById(R.id.username);
         usernameTextView.setText(username);
 
         // Load profile image
         loadProfileImage();
+
+        // Schedule reminders after login or app startup (only if the user is valid)
+        if (userId != -1) {  // Ensure only scheduling reminders for a valid user
+            ReminderManager.scheduleReminders(getApplicationContext(), userId);
+        }
 
         // Initialize task container and RecyclerView for tasks
         taskContainer = findViewById(R.id.task_container);
@@ -124,78 +124,34 @@ public class HomeActivity extends AppCompatActivity {
 
         editTaskImageView.setClickable(true);
         editTaskImageView.setOnClickListener(v -> {
-            // Create an intent to start the EditTask activity
             Intent intent = new Intent(HomeActivity.this, EditTask.class);
-
-            // Optional: If you want to pass additional data, e.g., a task ID
-            // intent.putExtra("TASK_ID", taskId);  // Use the actual task ID you want to edit
-
-            // Start the EditTask activity
             startActivity(intent);
         });
-
-
 
         // Set home button listener (refresh current activity)
         homeButton.setOnClickListener(v -> {
             recreate();  // Refresh the activity by calling recreate()
         });
 
-        // Check for storage permission
-        checkStoragePermission();
-    }
-
-
-    // Method to save profile image URI to SharedPreferences
-    private void saveProfileImageUri(Uri imageUri) {
-        SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("PROFILE_IMAGE_URI", imageUri.toString());
-        editor.apply();
     }
 
     // Method to load profile image from SharedPreferences
     private void loadProfileImage() {
         SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-        String imageUriString = prefs.getString("PROFILE_IMAGE_URI", "");
-
-        if (!imageUriString.isEmpty()) {
-            Uri imageUri = Uri.parse(imageUriString);
-            profileImageView.setImageURI(imageUri);
-        } else {
-            profileImageView.setImageResource(R.drawable.base_profile);
-        }
-    }
-
-    // Handle Activity result for profile image selection
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (resultCode == RESULT_OK && data != null) {
-            if (requestCode == EDIT_PROFILE_REQUEST_CODE) {
-                Uri imageUri = data.getData();  // Get URI of selected image
-
-                if (imageUri != null) {
-                    // Save the URI to SharedPreferences
-                    saveProfileImageUri(imageUri);
-                    // Reload the profile image to reflect the change
-                    loadProfileImage();
-                }
-            }
-        }
+        int imageResId = prefs.getInt("PROFILE_IMAGE_RESOURCE", R.drawable.base_profile);
+        profileImageView.setImageResource(imageResId);
     }
 
     // Fetch tasks that are in progress (horizontal scroll view)
     public List<Task> getTasksInProgress() {
         Database database = new Database(this);
-        return database.getTasksInProgress(userId); // Fetch tasks in progress
+        return database.getTasksInProgress(userId);
     }
 
     // Fetch task groups with counts from the database
     public List<TaskGroup> getTaskGroupsWithCount() {
         Database database = new Database(this);
-        return database.getTaskGroupsWithCount(userId); // Fetch task groups with count of tasks
+        return database.getTaskGroupsWithCount(userId);
     }
 
     // Display tasks that are in progress
@@ -220,12 +176,7 @@ public class HomeActivity extends AppCompatActivity {
                 String title = task.getTitle();
                 String description = task.getDescription();
 
-                SpannableString spannableString = new SpannableString(title + "\n" + description);
-                int titleEndIndex = title.length();
-                spannableString.setSpan(new ForegroundColorSpan(Color.BLACK), 0, titleEndIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                spannableString.setSpan(new ForegroundColorSpan(Color.GRAY), titleEndIndex + 1, spannableString.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-                taskCountTextView.setText(spannableString);
+                taskCountTextView.setText(title + "\n" + description);
 
                 // Set appropriate image based on task group
                 switch (task.getGroup()) {
@@ -242,20 +193,6 @@ public class HomeActivity extends AppCompatActivity {
                         groupTaskIconImageView.setImageResource(R.drawable.category_background);
                         break;
                 }
-
-                if (task.getGroup().equals("School")) {
-                    taskView.setBackgroundResource(R.drawable.school_background);
-                } else if (task.getGroup().equals("Work")) {
-                    taskView.setBackgroundResource(R.drawable.work_background);
-                } else if (task.getGroup().equals("Chores")) {
-                    taskView.setBackgroundResource(R.drawable.chores_background);
-                }
-
-                // Set the layout params for the task view (width and height)
-                ViewGroup.LayoutParams params = taskView.getLayoutParams();
-                params.width = (int) (200 * getResources().getDisplayMetrics().density);
-                params.height = (int) (100 * getResources().getDisplayMetrics().density);
-                taskView.setLayoutParams(params);
 
                 taskContainer.addView(taskView);
             }
@@ -281,24 +218,4 @@ public class HomeActivity extends AppCompatActivity {
         finish();
     }
 
-    // Check for storage permissions
-    private void checkStoragePermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, STORAGE_PERMISSION_REQUEST_CODE);
-            }
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Storage permission granted", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "Storage permission denied", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
 }

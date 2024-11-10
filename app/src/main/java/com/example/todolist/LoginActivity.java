@@ -8,12 +8,15 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.google.firebase.auth.FirebaseAuth;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.todolist.DateUtils;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.Date;
 
@@ -22,12 +25,14 @@ public class LoginActivity extends AppCompatActivity {
     private EditText emailInput, passwordInput;
     private Button loginButton;
     private CheckBox rememberMeCheckbox;
+    private Database dbHelper;
+    private ImageView passwordToggle;  // Declare the eye icon for password visibility toggle
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-
+        dbHelper = new Database(this);
         // Initialize views
         emailInput = findViewById(R.id.emailInput);
         passwordInput = findViewById(R.id.passwordInput);
@@ -35,9 +40,11 @@ public class LoginActivity extends AppCompatActivity {
         rememberMeCheckbox = findViewById(R.id.rememberMeCheckbox);
         TextView loginOption = findViewById(R.id.loginOption);
         TextView forgotPassword = findViewById(R.id.forgotPassword);
+        passwordToggle = findViewById(R.id.eyeIcon);
 
         // Load saved credentials if any
         loadSavedCredentials();
+        passwordToggle.setOnClickListener(v -> togglePasswordVisibility(passwordInput, passwordToggle));
 
         // SharedPreferences for checking saved email and user ID
         SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
@@ -74,6 +81,16 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
+    private void togglePasswordVisibility(EditText passwordField, ImageView toggleIcon) {
+        if (passwordField.getTransformationMethod() instanceof android.text.method.PasswordTransformationMethod) {
+            passwordField.setTransformationMethod(null);
+            toggleIcon.setImageResource(R.drawable.baseline_remove_red_eye_24);  // Show the open eye icon
+        } else {
+            passwordField.setTransformationMethod(new android.text.method.PasswordTransformationMethod());
+            toggleIcon.setImageResource(R.drawable.baseline_visibility_off_24);  // Show the closed eye icon
+        }
+    }
+
     private void loginUser(String email, String password) {
         Database dbHelper = new Database(this);
 
@@ -96,48 +113,52 @@ public class LoginActivity extends AppCompatActivity {
         // Hash the entered password with the stored salt
         String hashedInputPassword = PasswordUtility.hashPassword(password, storedSalt);
 
-        // Compare the hashed passwords
-        if (hashedInputPassword.equals(storedHashedPassword)) {
-            // Retrieve the user ID from the database
-            int userId = dbHelper.getUserIdByEmail(email);
-            Log.d("LoginActivity", "Retrieved userId from DB: " + userId);  // Log this value to ensure it's correct
+        // Check Firebase Authentication for any updates
+        FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
+        firebaseAuth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
 
-            // Check if the user ID is valid (not -1)
-            if (userId == -1) {
-                Log.e("LoginActivity", "Error: Invalid userId (-1), cannot proceed.");
-                Toast.makeText(this, "Error: User ID not found.", Toast.LENGTH_SHORT).show();
-                return; // Stop the login process if userId is invalid
-            }
+                        // Compare Firebase password with the local password
+                        if (!hashedInputPassword.equals(storedHashedPassword)) {
+                            // Generate new salt and hash password
+                            String newSalt = PasswordUtility.generateSalt();
+                            String newHashedPassword = PasswordUtility.hashPassword(password, newSalt);
 
-            // Retrieve the updated username from the database (not from email)
-            String username = dbHelper.getUsernameById(userId);  // Fetch the username using the userId
-            Log.d("LoginActivity", "Retrieved updated username: " + username);
+                            // Update the local database
+                            dbHelper.updatePassword(email, newHashedPassword, newSalt);
 
-            // Save the username (updated, not from email)
-            saveUsername(username); // Save the updated username
+                            Toast.makeText(this, "Local password updated to match Firebase.", Toast.LENGTH_SHORT).show();
+                        }
 
-            // Save the user ID
-            saveUserId(userId);
+                        // Retrieve the user ID and proceed with login
+                        int userId = dbHelper.getUserIdByEmail(email);
+                        proceedToHome(userId, email);
+                    } else {
+                        passwordInput.setError("Incorrect password");
+                    }
+                });
+    }
 
-            // Save login time
-            saveLoginTime();
+    private void proceedToHome(int userId, String email) {
+        // Retrieve the updated username from the database
+        String username = dbHelper.getUsernameById(userId);
+        saveUsername(username); // Save the updated username
+        saveUserId(userId);
+        saveLoginTime();
 
-            // Save email if "Remember Me" is checked
-            if (rememberMeCheckbox.isChecked()) {
-                saveCredentials(email, userId); // Save the email
-            } else {
-                clearSavedCredentials(); // Clear the saved email
-            }
-
-            // Proceed to the next activity
-            Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-            intent.putExtra("USER_ID", userId); // Pass the user ID to the next activity
-            startActivity(intent);
-            finish(); // Close this activity
+        if (rememberMeCheckbox.isChecked()) {
+            saveCredentials(email, userId); // Save the email
         } else {
-            // Password does not match
-            passwordInput.setError("Incorrect password");
+            clearSavedCredentials(); // Clear the saved email
         }
+
+        // Proceed to the next activity
+        Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
+        intent.putExtra("USER_ID", userId); // Pass the user ID to the next activity
+        startActivity(intent);
+        finish(); // Close this activity
     }
 
 

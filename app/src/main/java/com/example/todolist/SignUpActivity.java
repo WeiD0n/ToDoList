@@ -6,6 +6,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
@@ -28,6 +30,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Date;
 import android.util.Base64;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class SignUpActivity extends AppCompatActivity {
 
@@ -71,6 +76,8 @@ public class SignUpActivity extends AppCompatActivity {
         // Set up password toggle functionality
         passwordToggle.setOnClickListener(v -> togglePasswordVisibility(passwordInput, passwordToggle));
         confirmPasswordToggle.setOnClickListener(v -> togglePasswordVisibility(confirmPasswordInput, confirmPasswordToggle));
+
+
 
         // Password Strength Indicator
         passwordInput.addTextChangedListener(new TextWatcher() {
@@ -201,60 +208,120 @@ public class SignUpActivity extends AppCompatActivity {
     }
 
     // Register the user
+    // Register the user
+    // Register the user
     public void registerUser(String email, String password) {
-        // Hash the password and generate a salt
-        String salt = generateSalt();
-        String hashedPassword = hashPassword(password, salt);
+        // Step 1: Firebase Authentication to verify the user
+        FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        // User authenticated successfully with Firebase
+                        FirebaseUser firebaseUser = task.getResult().getUser();
 
-        Database dbHelper = new Database(this);
+                        // Step 2: Send email verification
+                        firebaseUser.sendEmailVerification()
+                                .addOnCompleteListener(verificationTask -> {
+                                    if (verificationTask.isSuccessful()) {
+                                        // Email verification sent successfully
+                                        Toast.makeText(SignUpActivity.this,
+                                                "Verification email sent. Please verify your email address.",
+                                                Toast.LENGTH_SHORT).show();
 
-        // Attempt to add user to the database
-        boolean isUserAdded = dbHelper.addUser(email, hashedPassword, email, salt);
-
-        if (isUserAdded) {
-            // Immediately retrieve the user ID of the newly added user
-            int newUserId = dbHelper.getUserIdByEmail(email); // Fetch the user ID right after adding
-
-            if (newUserId != -1) { // Check if user ID is valid
-                // Save the user ID, email, and username in SharedPreferences
-                SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-                SharedPreferences.Editor editor = prefs.edit();
-                editor.putInt("USER_ID", newUserId);  // Save user ID
-                editor.putString("EMAIL", email);    // Save email
-
-                // Extract the username from the email (before the @ symbol)
-                String username = email.split("@")[0]; // Get everything before the '@'
-                editor.putString("USERNAME", username); // Save username
-
-                // Set default profile image URI
-                Uri defaultImageUri = Uri.parse("android.resource://" + getPackageName() + "/" + R.drawable.base_profile);
-                editor.putString("PROFILE_IMAGE_URI", defaultImageUri.toString()); // Save default image URI
-                editor.apply();
-
-                // Save login time
-                saveLoginTime();
-
-                // Save email if "Remember Me" is checked
-                if (rememberMeCheckbox.isChecked()) {
-                    saveCredentials(email); // Save the email
-                } else {
-                    clearSavedCredentials(); // Clear the saved email
-                }
-
-                // Show success message
-                Toast.makeText(this, "Signup successful!", Toast.LENGTH_SHORT).show();
-
-                // Redirect to HomeActivity after sign-up
-                Intent intent = new Intent(SignUpActivity.this, HomeActivity.class);
-                startActivity(intent);
-                finish(); // Close SignUpActivity
-            } else {
-                Toast.makeText(SignUpActivity.this, "Failed to retrieve user ID. Please try again.", Toast.LENGTH_SHORT).show();
-            }
-        } else {
-            Toast.makeText(SignUpActivity.this, "Registration failed. Please try again.", Toast.LENGTH_SHORT).show();
-        }
+                                        // Check email verification
+                                        checkEmailVerification(firebaseUser, password); // Pass the password here
+                                    } else {
+                                        // If sending verification email fails
+                                        Toast.makeText(SignUpActivity.this, "Failed to send verification email. Please try again.", Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                    } else {
+                        // If authentication fails with Firebase
+                        Toast.makeText(SignUpActivity.this, "Authentication failed. " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
+
+    // Check if email is verified
+    private void checkEmailVerification(FirebaseUser firebaseUser, String password) {
+        // Wait until the email is verified
+        Handler handler = new Handler(Looper.getMainLooper());
+        Runnable checkVerificationTask = new Runnable() {
+            @Override
+            public void run() {
+                firebaseUser.reload()  // Reload the user to get the latest status
+                        .addOnCompleteListener(task -> {
+                            if (task.isSuccessful()) {
+                                // Check if the email is verified after reload
+                                if (firebaseUser.isEmailVerified()) {
+                                    // Extract the username from the email (before the '@')
+                                    String username = firebaseUser.getEmail().split("@")[0];
+
+                                    // Step 3: Hash the password and generate a salt
+                                    String salt = generateSalt();
+                                    String hashedPassword = hashPassword(password, salt);
+
+                                    // Step 4: Insert the user into your local SQLite database
+                                    Database dbHelper = new Database(SignUpActivity.this);
+                                    boolean isUserAdded = dbHelper.addUser(firebaseUser.getEmail(), hashedPassword, username, salt);
+
+                                    if (isUserAdded) {
+                                        // Step 5: Retrieve user ID from SQLite after adding
+                                        int newUserId = dbHelper.getUserIdByEmail(firebaseUser.getEmail()); // Fetch the user ID right after adding
+
+                                        if (newUserId != -1) { // Check if user ID is valid
+                                            // Save the user ID, email, and username in SharedPreferences
+                                            SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+                                            SharedPreferences.Editor editor = prefs.edit();
+                                            editor.putInt("USER_ID", newUserId);  // Save user ID
+                                            editor.putString("EMAIL", firebaseUser.getEmail());    // Save email
+                                            editor.putString("USERNAME", username); // Save username (extracted from email)
+
+                                            // Set default profile image URI
+                                            Uri defaultImageUri = Uri.parse("android.resource://" + getPackageName() + "/" + R.drawable.base_profile);
+                                            editor.putString("PROFILE_IMAGE_URI", defaultImageUri.toString()); // Save default image URI
+                                            editor.apply();
+
+                                            // Save login time
+                                            saveLoginTime();
+
+                                            // Save email if "Remember Me" is checked
+                                            if (rememberMeCheckbox.isChecked()) {
+                                                saveCredentials(firebaseUser.getEmail()); // Save the email
+                                            } else {
+                                                clearSavedCredentials(); // Clear the saved email
+                                            }
+
+                                            // Show success message
+                                            Toast.makeText(SignUpActivity.this, "Signup successful!", Toast.LENGTH_SHORT).show();
+
+                                            // Redirect to HomeActivity after sign-up
+                                            Intent intent = new Intent(SignUpActivity.this, HomeActivity.class);
+                                            startActivity(intent);
+                                            finish(); // Close SignUpActivity
+                                        } else {
+                                            Toast.makeText(SignUpActivity.this, "Failed to retrieve user ID. Please try again.", Toast.LENGTH_SHORT).show();
+                                        }
+                                    } else {
+                                        Toast.makeText(SignUpActivity.this, "Registration failed in local DB. Please try again.", Toast.LENGTH_SHORT).show();
+                                    }
+                                } else {
+                                    // If email is not verified yet, keep retrying
+                                    Toast.makeText(SignUpActivity.this, "Email not verified yet. Please check your inbox.", Toast.LENGTH_SHORT).show();
+                                    handler.postDelayed(this, 5000); // Retry every 5 seconds
+                                }
+                            } else {
+                                // Handle error during reload
+                                Toast.makeText(SignUpActivity.this, "Failed to reload user. Please try again.", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+            }
+        };
+
+        // Initial check
+        handler.post(checkVerificationTask);
+    }
+
+
 
     private void saveLoginTime() {
         // Get the current timestamp and format it

@@ -1,5 +1,7 @@
 plugins {
-    alias(libs.plugins.android.application)
+    id("com.android.application")  // Applies the Android plugin
+    id("com.google.gms.google-services") // Firebase plugin for Google services
+    kotlin("android") version "1.8.22"  // Add Kotlin plugin if not already applied
 }
 
 android {
@@ -34,15 +36,20 @@ android {
 
 dependencies {
     // AndroidX Libraries
-    implementation(libs.appcompat)
-    implementation(libs.material)
-    implementation(libs.activity)
-    implementation(libs.constraintlayout)
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("com.google.android.material:material:1.9.0")
+    implementation("androidx.activity:activity-ktx:1.7.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+
+    // Firebase Authentication
+    implementation(platform("com.google.firebase:firebase-bom:32.1.1"))  // Firebase BOM to manage versions
+    implementation("com.google.firebase:firebase-auth:21.1.0")  // Firebase Auth
+
+    // Kotlin standard library
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22")  // Ensure you're using a compatible Kotlin version
 
     // Testing Libraries
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.ext.junit)
-    androidTestImplementation(libs.espresso.core)
-
-
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")
 }
