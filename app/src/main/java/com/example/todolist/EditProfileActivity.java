@@ -11,21 +11,20 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.provider.Settings;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -39,6 +38,8 @@ public class EditProfileActivity extends AppCompatActivity {
     private static final int STORAGE_PERMISSION_REQUEST_CODE = 100;
     private static final int GALLERY_REQUEST_CODE = 1;
 
+    private ActivityResultLauncher<Intent> galleryLauncher;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -47,7 +48,7 @@ public class EditProfileActivity extends AppCompatActivity {
         // Initialize the views
         editName = findViewById(R.id.edit_name);
         btnSave = findViewById(R.id.btn_save);
-        btnCancel = findViewById(R.id.btn_cancel);  // Initialize the Cancel button
+        btnCancel = findViewById(R.id.btn_cancel);
         editProfilePictureButton = findViewById(R.id.edit_profile_button_image);
         profileImageView = findViewById(R.id.profile_image);
 
@@ -96,8 +97,19 @@ public class EditProfileActivity extends AppCompatActivity {
         });
 
         // Cancel button logic
-        btnCancel.setOnClickListener(v -> finish());  // Simply close the activity and go back
+        btnCancel.setOnClickListener(v -> finish());
 
+        // Initialize gallery launcher
+        galleryLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                Uri selectedImageUri = result.getData().getData();
+                if (selectedImageUri != null) {
+                    loadImage(selectedImageUri);
+                }
+            }
+        });
+
+        // Edit profile picture button logic
         editProfilePictureButton.setOnClickListener(v -> requestStoragePermission());
     }
 
@@ -127,12 +139,7 @@ public class EditProfileActivity extends AppCompatActivity {
         String imageUriString = prefs.getString("PROFILE_IMAGE_URI", "");
         if (!imageUriString.isEmpty()) {
             Uri imageUri = Uri.parse(imageUriString);
-            try {
-                getContentResolver().takePersistableUriPermission(imageUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                loadImage(imageUri);
-            } catch (SecurityException e) {
-                Toast.makeText(this, "Permission error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            }
+            loadImage(imageUri);
         } else {
             profileImageView.setImageResource(R.drawable.base_profile);
         }
@@ -160,8 +167,6 @@ public class EditProfileActivity extends AppCompatActivity {
             } catch (IOException e) {
                 Toast.makeText(this, "Error loading image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
-        } else {
-            loadImageWithBitmapFactory(imageUri);
         }
     }
 
@@ -200,7 +205,19 @@ public class EditProfileActivity extends AppCompatActivity {
     private void openGallery() {
         Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         galleryIntent.setType("image/*");
-        startActivityForResult(galleryIntent, GALLERY_REQUEST_CODE);
+        galleryLauncher.launch(galleryIntent);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                openGallery();
+            } else {
+                Toast.makeText(this, "Permission denied. Cannot access gallery.", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private void redirectToLogin() {
