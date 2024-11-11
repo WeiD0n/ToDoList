@@ -2,12 +2,16 @@ package com.example.todolist;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Bundle;
 import android.os.Build;
+import android.os.Bundle;
 import android.provider.Settings;
+import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final int REQUEST_CODE_PERMISSION = 100; // Code for permission result
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -18,7 +22,7 @@ public class MainActivity extends AppCompatActivity {
             if (!ReminderManager.canScheduleExactAlarm(this)) {
                 // Redirect the user to settings to allow the permission
                 Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
-                startActivity(intent);
+                startActivityForResult(intent, REQUEST_CODE_PERMISSION);  // Start activity for result
                 return; // Don't proceed with app initialization until permission is granted
             }
         }
@@ -28,6 +32,9 @@ public class MainActivity extends AppCompatActivity {
         int userId = prefs.getInt("USER_ID", -1); // Get the saved user ID
         String savedEmail = prefs.getString("EMAIL", null); // Get the saved email
 
+        if (userId != -1) {  // Ensure only scheduling reminders for a valid user
+            ReminderManager.scheduleReminders(getApplicationContext(), userId);
+        }
         // If both userId and email are valid, check if the user exists in the database
         if (userId != -1 && savedEmail != null) {
             Database dbHelper = new Database(this);
@@ -45,8 +52,6 @@ public class MainActivity extends AppCompatActivity {
 
         // If no valid user found or no user logged in, go to the Login screen
         navigateToLogin();
-
-
     }
 
     // Method to clear any saved login data
@@ -71,4 +76,45 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
         finish(); // Close MainActivity to prevent returning to it
     }
+
+    // Handle the result from requesting permissions
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_CODE_PERMISSION) {
+            // Handle exact alarm permission result
+            if (ReminderManager.canScheduleExactAlarm(this)) {
+                // Permission granted, proceed with checking login state
+                checkLoginState();
+            } else {
+                // Permission denied, show a message and exit
+                Toast.makeText(this, "Permission to schedule exact alarms is required.", Toast.LENGTH_SHORT).show();
+                finish();
+            }
+        }
+    }
+
+    // Helper method to check login state and navigate accordingly
+    private void checkLoginState() {
+        SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+        int userId = prefs.getInt("USER_ID", -1);  // Get the saved user ID
+        String savedEmail = prefs.getString("EMAIL", null); // Get the saved email
+
+        // If both userId and email are valid, check if the user exists in the database
+        if (userId != -1 && savedEmail != null) {
+            Database dbHelper = new Database(this);
+            boolean userExists = dbHelper.checkUserExists(userId, savedEmail);
+
+            if (userExists) {
+                navigateToHome();
+            } else {
+                clearLoginData();
+                navigateToLogin();
+            }
+        } else {
+            navigateToLogin();
+        }
+    }
+
 }

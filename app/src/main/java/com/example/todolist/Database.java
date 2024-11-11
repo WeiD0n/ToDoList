@@ -19,7 +19,7 @@ import java.util.TimeZone;
 public class Database extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "ToDoList.db";
-    private static final int DATABASE_VERSION = 36; // Incremented version number
+    private static final int DATABASE_VERSION = 38; // Incremented version number
 
     // User table
     public static final String TABLE_USER = "User";
@@ -84,7 +84,7 @@ public class Database extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 34) {
+        if (oldVersion < 37) {
             // Add columns to the User table
             db.execSQL("ALTER TABLE " + TABLE_USER + " ADD COLUMN " +  " TEXT;");
             db.execSQL("ALTER TABLE " + TABLE_USER + " ADD COLUMN " + " INTEGER DEFAULT 0;");
@@ -136,46 +136,6 @@ public class Database extends SQLiteOpenHelper {
         Log.d("Database", "User added: " + username + ", Result: " + (result != -1));
         return result != -1;
     }
-
-    public String getProfileImage(int userId) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.query(TABLE_USER, new String[]{COLUMN_PROFILE_IMAGE_URI}, COLUMN_USER_ID + " = ?",
-                new String[]{String.valueOf(userId)}, null, null, null);
-
-        String imageUri = null;
-
-        if (cursor != null) {
-            do {
-                // Ensure that the column index is valid
-                int columnIndex = cursor.getColumnIndex(COLUMN_PROFILE_IMAGE_URI);
-
-                if (columnIndex >= 0) {
-                    // Column exists, retrieve the value
-                    if (cursor.moveToFirst()) {
-                        imageUri = cursor.getString(columnIndex);
-                    }
-                } else {
-                    // Column not found, handle the case if needed
-                    imageUri = null;
-                }
-            } while (false);  // This loop will execute only once
-            cursor.close();
-        }
-
-        return imageUri;  // Return the URI or null if not found
-    }
-
-
-    public boolean updateProfileImage(int userId, int profileImageResId) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(COLUMN_PROFILE_IMAGE_URI, profileImageResId);  // Use profile_image_uri here
-
-        // Update the profile image URI for the user with the given ID
-        int rowsAffected = db.update(TABLE_USER, contentValues, COLUMN_USER_ID + " = ?", new String[]{String.valueOf(userId)});
-        return rowsAffected > 0;
-    }
-
 
 
     public boolean updatePassword(String email, String newPassword, String salt) {

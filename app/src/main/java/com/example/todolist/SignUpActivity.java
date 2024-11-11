@@ -207,18 +207,16 @@ public class SignUpActivity extends AppCompatActivity {
         return true;
     }
 
-    // Register the user
-    // Register the user
-    // Register the user
+
     public void registerUser(String email, String password) {
-        // Step 1: Firebase Authentication to verify the user
+
         FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         // User authenticated successfully with Firebase
                         FirebaseUser firebaseUser = task.getResult().getUser();
 
-                        // Step 2: Send email verification
+                        //  Send email verification
                         firebaseUser.sendEmailVerification()
                                 .addOnCompleteListener(verificationTask -> {
                                     if (verificationTask.isSuccessful()) {
@@ -316,7 +314,6 @@ public class SignUpActivity extends AppCompatActivity {
                         });
             }
         };
-
         // Initial check
         handler.post(checkVerificationTask);
     }

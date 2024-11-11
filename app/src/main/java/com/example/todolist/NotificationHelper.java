@@ -1,12 +1,12 @@
 package com.example.todolist;  // Ensure the correct package name
 
-import android.app.Notification;
+
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.os.Build;
 import androidx.core.app.NotificationCompat;
-import com.example.todolist.R;
+
 
 public class NotificationHelper {
 

@@ -8,6 +8,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -178,26 +179,37 @@ public class HomeActivity extends AppCompatActivity {
 
                 taskCountTextView.setText(title + "\n" + description);
 
-                // Set appropriate image based on task group
+                // Set appropriate image and background drawable based on task group
                 switch (task.getGroup()) {
                     case "School":
                         groupTaskIconImageView.setImageResource(R.drawable.school);
+                        taskView.setBackgroundResource(R.drawable.school_background);
                         break;
                     case "Work":
                         groupTaskIconImageView.setImageResource(R.drawable.work);
+                        taskView.setBackgroundResource(R.drawable.work_background);
                         break;
                     case "Chores":
                         groupTaskIconImageView.setImageResource(R.drawable.chores);
+                        taskView.setBackgroundResource(R.drawable.chores_background);
                         break;
                     default:
                         groupTaskIconImageView.setImageResource(R.drawable.category_background);
+                        taskView.setBackgroundResource(R.drawable.category_background);
                         break;
                 }
+
+                // Adjusting the height and width of the task view directly
+                ViewGroup.LayoutParams params = taskView.getLayoutParams();
+                params.height = 300;
+                params.width = 600;
+                taskView.setLayoutParams(params);
 
                 taskContainer.addView(taskView);
             }
         }
     }
+
 
     // Setup RecyclerView for task groups
     private void setupRecyclerView(List<TaskGroup> taskGroups) {

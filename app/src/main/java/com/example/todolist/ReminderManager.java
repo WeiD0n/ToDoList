@@ -101,7 +101,7 @@ public class ReminderManager {
             intent1Hour.putExtra("reminderType", "1 hour");
             PendingIntent pendingIntent1Hour = PendingIntent.getBroadcast(
                     context,
-                    task.getId() * 100 + 1,  // Ensure each PendingIntent has a unique requestCode
+                    task.getId() * 100 + 1,
                     intent1Hour,
                     PendingIntent.FLAG_IMMUTABLE
             );
@@ -110,8 +110,8 @@ public class ReminderManager {
             // 1 Day before the task ends
             long reminderTime1Day = endDateInMillis - 24 * 60 * 60 * 1000; // 1 day before
             if (reminderTime1Day < System.currentTimeMillis()) {
-                // Relax buffer check to allow 1 day reminder even if it's close to the task's end time
-                long bufferTime = System.currentTimeMillis() + 5 * 60 * 1000; // 5 minutes buffer
+
+                long bufferTime = System.currentTimeMillis() + 2 * 60 * 1000; // 2 minutes buffer
                 if (reminderTime1Day < bufferTime) {
                     Log.d("ReminderManager", "Skipping 1 day reminder for task " + task.getTitle() + " because the reminder time is too close to task end.");
                     continue;  // Skip scheduling this reminder if it's too close
@@ -147,7 +147,7 @@ public class ReminderManager {
             intent1Week.putExtra("reminderType", "1 week");
             PendingIntent pendingIntent1Week = PendingIntent.getBroadcast(
                     context,
-                    task.getId() * 100 + 3,  // Ensure each PendingIntent has a unique requestCode
+                    task.getId() * 100 + 3,
                     intent1Week,
                     PendingIntent.FLAG_IMMUTABLE
             );
@@ -162,7 +162,6 @@ public class ReminderManager {
     private static void scheduleReminder(Context context, long reminderTimeInMillis, PendingIntent pendingIntent) {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (alarmManager != null) {
-            // Set an exact alarm (if possible)
             alarmManager.setExact(AlarmManager.RTC_WAKEUP, reminderTimeInMillis, pendingIntent);
             Log.d("ReminderManager", "Scheduled reminder for: " + reminderTimeInMillis);
         } else {
